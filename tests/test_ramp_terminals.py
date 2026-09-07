@@ -234,6 +234,62 @@ def test_transition_assist_brakes_for_the_red():
         app.shutdown()
 
 
+def test_transition_assist_finishes_a_snub_instead_of_crawling_to_the_bar():
+    """A completed snub must not pin a slow truck hundreds of feet out.
+
+    The anti-fanning servo deliberately holds one application, but its floor
+    used to survive even after demand collapsed. At 15 mph with 1,000 feet to
+    go it kept forcing throttle to zero all the way down the approach.
+    """
+    from freight_fate.app import App
+
+    app = App()
+    try:
+        d = _driving(app)
+        app.ctx.settings.route_transition_assist = True
+        _on_ramp(d, "stop", red=False, mph=15.0)
+        d._ramp_mi = RAMP_ACCESS_MI + 1000.0 / 5280.0
+        d._ramp_assist_brake = 0.25
+        d.truck.brake = 0.25
+        d.truck.throttle = 0.5
+
+        d._update_ramp_terminal_assist()
+
+        assert d._ramp_assist_brake == 0.0
+        assert d.truck.throttle == 0.5
+    finally:
+        app.shutdown()
+
+
+def test_accelerator_takes_authority_then_terminal_assist_can_reengage():
+    """A held accelerator wins now; releasing it does not disable safety."""
+    from freight_fate.app import App
+
+    app = App()
+    try:
+        d = _driving(app)
+        app.ctx.settings.route_transition_assist = True
+        _on_ramp(d, "signal", red=True, mph=35.0)
+        d._ramp_mi = RAMP_ACCESS_MI + 0.08
+        d._ramp_assist_brake = 0.25
+        d.truck.brake = 0.0
+        d.truck.throttle = 0.5
+
+        d._update_ramp_terminal_assist(accelerating=True)
+
+        assert d._ramp_assist_brake == 0.0
+        assert d.truck.brake == 0.0
+        assert d.truck.throttle == 0.5
+
+        d._update_ramp_terminal_assist(accelerating=False)
+
+        assert d._ramp_assist_brake > 0.0
+        assert d.truck.brake > 0.0
+        assert d.truck.throttle == 0.0
+    finally:
+        app.shutdown()
+
+
 def test_transition_assist_holds_the_stop_at_the_bar():
     from freight_fate.app import App
     from freight_fate.states.driving import RAMP_ASSIST_HOLD_MI

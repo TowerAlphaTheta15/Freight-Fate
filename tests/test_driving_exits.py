@@ -725,6 +725,37 @@ def test_exit_speed_assist_slows_with_full_lane_keeping(monkeypatch):
         app.shutdown()
 
 
+def test_exit_speed_assist_slows_an_automatically_taken_destination_exit(monkeypatch):
+    """Full lane keeping takes the destination exit without an X signal.
+
+    That is valid exit intent, so it must receive the same speed assistance
+    as a manually signalled exit rather than arriving at the gore at highway
+    speed whenever cruise is off.
+    """
+    from freight_fate.app import App
+
+    app = App()
+    app.ctx.settings.apply_driving_assistance_preset("all")
+    monkeypatch.setattr(app.ctx, "say_event", speech_stub())
+    try:
+        driving = start_drive(app)
+        quiet_trip(driving)
+        destination = driving._destination_exit_stop()
+        driving.trip.position_mi = destination.at_mi - 1.0
+        driving.truck.velocity_mps = 29.0  # ~65 mph
+
+        driving._check_destination_exit()
+        assert driving._exit_stop is not None
+        assert not driving._exit_signal_on
+
+        driving._update_exit_preparation(HeldKeys(), 1 / 60)
+
+        assert driving._exit_intent_ready(driving._exit_stop)
+        assert driving.truck.brake >= 0.35
+    finally:
+        app.shutdown()
+
+
 @pytest.mark.smoke
 def test_exit_lane_stays_set_after_keyboard_release():
     from freight_fate.app import App

@@ -3522,7 +3522,12 @@ for 1.8" framing predates the release split):
       putting the trip on the real clock for the shed window the way a
       controlled ramp and a severe curve already do, so signalling nine miles
       out no longer starts the shed the moment the signal goes on, at any
-      pacing. Battery scenario: `ramp_speed_control_handback`.
+      pacing. Follow-up control fixes make the whole active exit-assistance
+      window real time, including signal-free destination exits under full
+      lane keeping. At ramp-end controls, a completed brake snub now releases
+      without returning to the old air-draining brake chatter, and a live
+      accelerator press owns the pedals until the driver lets it go. Battery
+      scenario: `ramp_speed_control_handback`.
 - [x] **Enforcement beyond the speeding stop.** Weigh-station blow-pasts
       and severe visible damage draw roadside stops; running from lights
       escalates through warnings to a felony stop with spike strips and

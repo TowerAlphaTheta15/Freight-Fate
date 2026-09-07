@@ -755,6 +755,19 @@
   privately; they just stay off your profile.
 
 ### Fixed
+
+- **Exit assistance now uses the road it promises and gives the pedals back.**
+  At faster trip pacing, most of the mile and a half where exit assistance
+  was supposedly slowing could pass before the clock gave its brakes real
+  time to work, leaving the useful braking until the half-mile call or even
+  after the ramp. That whole approach now runs in real time, including a
+  destination exit that full lane keeping takes without a signal. At a red
+  light or stop sign beyond the ramp, route-transition assistance also ends
+  a completed brake application instead of trapping the truck near fifteen
+  miles per hour hundreds of feet from the bar, and a deliberate press of
+  the accelerator takes the pedals back; release it and the assistance can
+  still brake again when the stop genuinely requires it.
+
 - **Nearly half the exits in the game now end at the control that is really
   there.** What waits at the bottom of an off-ramp -- a traffic light, a stop
   sign, or nothing at all -- was decided by a roll of the dice at every exit

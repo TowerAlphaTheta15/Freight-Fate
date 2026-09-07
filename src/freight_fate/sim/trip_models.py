@@ -284,6 +284,7 @@ FACILITY_ACCESS_TAIL_MI = 2.0
 # layer, because both the zone builder and the driving state need the same
 # number: ``states/driving_core`` imports it as ``RAMP_MAX_MPH``.
 RAMP_MAX_MPH = 45.0
+EXIT_SPEED_ASSIST_START_MI = 1.5
 # The destination approach never caps below the speed the ramp needs. It used
 # to be a flat 35 over the last three miles, which put a step change on the
 # road a mile or two before the exit and dragged the truck down to a crawl

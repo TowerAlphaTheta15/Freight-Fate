@@ -1316,6 +1316,7 @@ class DrivingEventMixin:
             return
         if self._exit_signal_on:
             self._update_exit_countdown(stop)
+        if self._exit_intent_ready(stop):
             self._update_exit_speed_assist(stop)
         if self.ctx.settings.lane_is_automated():
             return
@@ -1410,7 +1411,7 @@ class DrivingEventMixin:
         if not self.ctx.settings.exit_speed_assist:
             return
         ahead = stop.at_mi - self.trip.position_mi
-        if not 0 < ahead <= 1.5:
+        if not 0 < ahead <= EXIT_SPEED_ASSIST_START_MI:
             return
         if self._cruise_mph is not None or self._keeper_mph is not None:
             # The assist takes the pedals for the ramp; the session is not its
@@ -2313,7 +2314,7 @@ class DrivingEventMixin:
                 category=SpeechCategory.NAVIGATION,
             )
 
-    def _update_ramp_terminal_assist(self) -> None:
+    def _update_ramp_terminal_assist(self, *, accelerating: bool = False) -> None:
         """Route-transition assistance works the pedals for the terminal.
 
         Stopping a rig blind inside the bar's grace window while the light
@@ -2330,6 +2331,15 @@ class DrivingEventMixin:
         if self._ramp_mi is None or self._ramp_terminal_done:
             return
         if self._ramp_control not in ("signal", "stop") or not self._ramp_light_announced:
+            return
+        if accelerating:
+            # A live accelerator press is the driver taking the pedals. Drop
+            # the assist's stored application as well as standing aside this
+            # frame, otherwise it returns on the next tick and fights the
+            # same held input. Once the driver releases, the higher engage
+            # threshold below may take over again if the bar truly requires
+            # it.
+            self._ramp_assist_brake = 0.0
             return
         if self._ramp_waiting_at_light:
             # Holding for green: the assist keeps the brakes on.
@@ -2389,6 +2399,13 @@ class DrivingEventMixin:
         gap_m = max(0.5, gap_mi * 1609.344)
         v_mps = max(0.0, self.truck.velocity_mps)
         needed = (v_mps * v_mps) / (2.0 * gap_m)
+        if needed < RAMP_ASSIST_DECEL_RELEASE_MPS2 and gap_m > 30.0:
+            # The current snub has done its work. Keeping the minimum pedal
+            # down here trapped trucks near 15 mph with a thousand feet still
+            # to run and made throttle ineffective. Coast until demand rises
+            # through the separate engagement threshold again.
+            self._ramp_assist_brake = 0.0
+            return
         idle = self._ramp_assist_brake <= 0.0
         if idle and needed < RAMP_ASSIST_DECEL_START_MPS2 and gap_m > 30.0:
             return
@@ -2510,7 +2527,9 @@ class DrivingEventMixin:
             return
         self._ramp_terminal_done = True
 
-    def _update_exit(self, moved_mi: float, dt: float = 0.0) -> None:
+    def _update_exit(
+        self, moved_mi: float, dt: float = 0.0, *, accelerating: bool = False
+    ) -> None:
         """Advance an armed exit or an active ramp; opens the stop menu."""
         # Real time from the gore to the terminal: while the ramp ends in
         # a live light or sign, the clock must not compress the seconds
@@ -2536,7 +2555,7 @@ class DrivingEventMixin:
             self._ramp_mi -= moved_mi
             if not self._ramp_light_announced and self._ramp_mi <= RAMP_CONTROL_ANNOUNCE_MI:
                 self._announce_ramp_terminal()
-            self._update_ramp_terminal_assist()
+            self._update_ramp_terminal_assist(accelerating=accelerating)
             if self._update_selected_stop_assist():
                 return
             if not self._ramp_terminal_done and self._ramp_mi <= RAMP_ACCESS_MI:

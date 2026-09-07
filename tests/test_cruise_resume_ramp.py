@@ -334,6 +334,27 @@ def test_the_ramp_cap_glides_down_as_the_exit_closes(monkeypatch):
         app.shutdown()
 
 
+@pytest.mark.parametrize("time_scale", [1.0, 4.0, 20.0, 40.0])
+def test_exit_speed_assist_window_runs_on_the_real_clock(monkeypatch, time_scale):
+    """The assist's entire 1.5-mile pedal window must buy real seconds.
+
+    Previously only the smaller physics shed window decompressed pacing, so
+    most of the advertised assist window disappeared at 20x or 40x and useful
+    braking appeared to begin around the half-mile callout.
+    """
+    from freight_fate.app import App
+
+    app = App()
+    try:
+        driving, stop = _armed_exit_at(app, monkeypatch, ahead_mi=4.5, time_scale=time_scale)
+        driving.trip.position_mi = stop.at_mi - 1.49
+        driving._update_exit(0.0)
+
+        assert driving.trip.effective_time_scale == pytest.approx(1.0)
+    finally:
+        app.shutdown()
+
+
 def _cap_at(driving, stop, ahead_mi: float) -> float:
     """The exit cap with the truck ``ahead_mi`` short of the gore."""
     driving.trip.position_mi = stop.at_mi - ahead_mi

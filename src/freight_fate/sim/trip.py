@@ -1156,7 +1156,16 @@ class Trip(TripRoadEventMixin, TripTrafficMixin, EnforcementPostMixin):
         speed = self.truck.speed_mph
         if speed <= RAMP_MAX_MPH:
             return False  # already slow enough for the gore: nothing to shed
-        window = approach_shed_mi(speed, RAMP_MAX_MPH) * EXIT_APPROACH_DECOMPRESS_SLACK
+        # Exit speed assistance starts at this distance in the driving layer.
+        # Keep that entire pedal-working window on the real clock: previously
+        # the assist applied its brake at 1.5 miles, while pacing stayed
+        # compressed until the smaller physics-only shed window. Most of the
+        # approach therefore vanished in a handful of frames and useful
+        # slowing did not begin until the half-mile callout.
+        window = max(
+            EXIT_SPEED_ASSIST_START_MI,
+            approach_shed_mi(speed, RAMP_MAX_MPH) * EXIT_APPROACH_DECOMPRESS_SLACK,
+        )
         return ahead <= window
 
     @staticmethod

@@ -81,6 +81,7 @@ from ..sim.trip_models import (
     APPROACH_DECEL_MPS2,
     APPROACH_REACTION_S,
     DESTINATION_LOCAL_APPROACH_MI,
+    EXIT_SPEED_ASSIST_START_MI,
     METERS_PER_MILE,
 )
 from ..sim.trip_models import RAMP_MAX_MPH as TRIP_RAMP_MAX_MPH
@@ -294,6 +295,10 @@ RAMP_TERMINAL_GRACE_MI = 0.02  # rolling this far past the bar commits the viola
 # to brake application against the nominal full-service figure, and holds the
 # stop once the truck is within the hold window short of the bar.
 RAMP_ASSIST_DECEL_START_MPS2 = 0.6
+# Once a held application has taken demand this far below the engagement
+# point, finish that snub and coast. Separate thresholds prevent the rapid
+# release/reapply cycle that used to empty the air tanks.
+RAMP_ASSIST_DECEL_RELEASE_MPS2 = 0.35
 RAMP_ASSIST_FULL_DECEL_MPS2 = 3.0
 RAMP_ASSIST_HOLD_MI = 60.0 / 5280.0
 # How far the demand has to fall below the pedal the assist is already holding
